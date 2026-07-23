@@ -1,0 +1,30 @@
+# docloom configuration — everything repo-specific the gauntlet needs.
+# Defaults shown commented; uncomment to override.
+
+[docloom]
+# exclude = [".claude/", "node_modules/"]     # corpus exclusions (path prefixes)
+# tracker = "docs/sprint-status.yaml"         # the sprint tracker (execution SSoT)
+# stories-dir = "docs/stories"
+# epics-dir = "docs/epics"
+# adr-dir = "docs/adr"
+base-branch = "main"                          # for the "work begun in-branch" nudge
+
+[docloom.gate3]
+min-epic = 1              # stories in epics >= this need an `anchor:` field
+enforced = {{GATE3_ENFORCED}}           # false = advisory-only (brownfield rollout ratchet)
+
+[docloom.anchors]
+resolver = "python"       # symbol/test resolver (v1: python only)
+route-resolver = "litestar"
+route-globs = ["src/**/*.py"]
+
+# Vocabulary: defaults are the closed 12-type / 8-status / 8-execution-status
+# enums documented in docs/doc-conventions.md. Override here — or make the
+# conventions doc self-describing by declaring a `vocabulary:` block in its
+# frontmatter and pointing at it:
+# [docloom.vocabulary]
+# from-doc = "docs/doc-conventions.md"
+
+# Sibling checkouts usable as `source_docs:` schemes on epic docs, e.g.:
+# [docloom.siblings]
+# contracts = "../my-contracts-repo"

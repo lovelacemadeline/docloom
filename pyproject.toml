@@ -1,0 +1,20 @@
+[project]
+name = "docloom"
+version = "0.1.0"
+description = "Portable doc-conventions gauntlet: typed frontmatter, tracker bijection, citeable registers, spec-grounding anchors."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["pyyaml>=6.0"]
+
+[project.scripts]
+docloom = "docloom.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/docloom"]
+
+[dependency-groups]
+dev = ["pytest>=8"]

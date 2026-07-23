@@ -1,0 +1,23 @@
+# docloom config reproducing crosssense-v3-server's checker constants exactly.
+# Used by parity/run_parity.sh to diff `docloom check` against the original
+# scripts/check_doc_conventions.py output on the same corpus.
+
+[docloom]
+exclude = [".claude/", "node_modules/", "research-artefacts/"]
+tracker = "_bmad-output/implementation-artifacts/sprint-status.yaml"
+stories-dir = "docs/stories"
+epics-dir = "docs/epics"
+adr-dir = "docs/adr"
+base-branch = "development"
+
+[docloom.gate3]
+min-epic = 25
+enforced = true   # ratcheted hard 2026-07-09 in the original
+
+[docloom.anchors]
+resolver = "python"
+route-resolver = "litestar"
+route-globs = ["src/**/*.py"]
+
+[docloom.siblings]
+contracts = "../crosssense-contracts"
