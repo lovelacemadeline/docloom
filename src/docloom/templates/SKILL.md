@@ -1,13 +1,30 @@
 ---
 name: docloom
-description: Record dev work as governed docs — epics, stories with spec-grounding anchors, tracker rows — and keep them passing `docloom check`. Use when asked to "record what we've built", "docloom this", "write up this work as stories", or before committing doc changes.
+description: Work with this project's governed docs — pull the tiered context graph for an epic/story before starting work, and record dev work as epics/stories with spec-grounding anchors and tracker rows that pass `docloom check`. Use when starting work on an epic or story ("pull context for 26.1"), when asked to "record what we've built", "docloom this", "write up this work as stories", or before committing doc changes.
 ---
 
-# docloom — record work as governed documentation
+# docloom — governed documentation, both directions
 
 This project's docs follow `docs/doc-conventions.md` (typed frontmatter, a
 sprint tracker, citeable registers, spec-grounding anchors), enforced by
 `docloom check`. Read that file first if you haven't this session.
+
+## Pulling context BEFORE starting work on an epic/story
+
+Before working on a "thing to be done" (an epic number like `26`, or a story
+id like `26.1`), pull its full context graph:
+
+```bash
+docloom context 26.1
+```
+
+It prints five tiers of paths: the epic doc; its story files; each register
+whose clauses the epic owns or the story cites (with the specific row ids);
+cited ADRs (stubs list their upstream `points-to:`); and the epic's declared
+`source_docs:` provenance. **Read every path it emits** (and the named
+register rows specifically) before beginning the actual work. Register rows
+are a citeable index, not the shape authority — where a row restates an
+upstream fact, verify against the upstream source it cites.
 
 ## Recording a rabbit-hole (retro-documenting built work)
 

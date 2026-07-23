@@ -187,3 +187,45 @@ def test_block_governs_enforcement_not_defaults(project: Path, capsys) -> None:
     (project / "docs/my.md").write_text("---\ntype: zine\nstatus: active\n---\n# z\n")
     _stage(project)
     assert main(["check", "--root", str(project)]) == 0
+
+
+def test_context_manifest_tiers(project: Path, capsys) -> None:
+    (project / "docs/epics/epic-01.md").write_text(
+        "---\ntype: epic\nstatus: in-progress\nepic: 1\ntitle: Example epic\n"
+        "source_docs:\n  - docs/product/prd-example.md\n---\n# Epic 1\n"
+    )
+    (project / "docs/product/prd-example.md").write_text(
+        "---\ntype: prd\nstatus: active\ntitle: Example PRD\n---\n# PRD\n"
+    )
+    (project / "docs/adr/0001-example.md").write_text(
+        "---\ntype: decision\nstatus: active\ntitle: Example decision\n---\n# ADR-0001\n"
+    )
+    (project / "docs/reference/core-register.md").write_text(
+        "---\ntype: register\nstatus: active\ntitle: Core register\n"
+        "register:\n  name: core\n  clause-prefixes: [C-CORE]\n"
+        "  owner-map:\n"
+        "    heading: '### Coverage Map'\n"
+        "    line: '- \\*\\*Epic (\\d+):\\*\\*'\n"
+        "---\n# Core\n- **C-CORE-1** — a clause\n\n### Coverage Map\n"
+        "- **Epic 1:** C-CORE-1\n"
+    )
+    (project / "docs/stories/1-1-thing.md").write_text(
+        "---\ntype: story\nstatus: in-progress\ntitle: Thing\nanchor: none  # smoke\n"
+        "---\n## Acceptance Criteria\nGiven When Then. Cites C-CORE-1 and ADR-0001.\n"
+    )
+    (project / "docs/sprint-status.yaml").write_text(
+        "epics:\n  - epic: 1\n    title: Example epic\n    status: in-progress\n"
+        "    story_home: docs/stories/\n    stories:\n"
+        "      - id: '1.1'\n        title: Thing\n        status: in-progress\n"
+    )
+    _stage(project)
+    assert main(["check", "--root", str(project)]) == 0
+    capsys.readouterr()
+    assert main(["context", "--root", str(project), "1.1"]) == 0
+    out = capsys.readouterr().out
+    assert "CONTEXT MANIFEST — Story 1.1" in out
+    assert "docs/epics/epic-01.md" in out
+    assert "docs/stories/1-1-thing.md" in out
+    assert "docs/reference/core-register.md" in out and "C-CORE-1" in out
+    assert "docs/adr/0001-example.md" in out
+    assert "docs/product/prd-example.md" in out

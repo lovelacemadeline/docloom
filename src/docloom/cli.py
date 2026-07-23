@@ -32,6 +32,16 @@ def main(argv: list[str] | None = None) -> int:
         help="only fail docs that declare a type: but get it wrong",
     )
 
+    ctx = sub.add_parser(
+        "context",
+        help="tiered path manifest of every doc related to an epic/story",
+    )
+    ctx.add_argument("target", help="epic or story id: 26, epic-26, 26.1, 26-1")
+    ctx.add_argument("--root", type=Path, default=Path.cwd(), help="project root")
+    ctx.add_argument(
+        "--config", type=Path, default=None, help="explicit docloom.toml path"
+    )
+
     ini = sub.add_parser("init", help="scaffold conventions into a project")
     ini.add_argument("--root", type=Path, default=Path.cwd(), help="project root")
     ini.add_argument("--name", default=None, help="project name (default: dir name)")
@@ -61,6 +71,15 @@ def main(argv: list[str] | None = None) -> int:
             summary=args.summary,
             valid_if_present=args.valid_if_present,
         )
+    if args.cmd == "context":
+        from .context import run_context
+
+        try:
+            cfg = load_config(args.root.resolve(), args.config)
+        except ConfigError as exc:
+            print(f"docloom: config error — {exc}", file=sys.stderr)
+            return 2
+        return run_context(Gauntlet(cfg), args.target)
     if args.cmd == "init":
         return init_project(
             args.root.resolve(),
