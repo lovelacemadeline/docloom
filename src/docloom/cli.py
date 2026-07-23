@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from .config import load_config
+from .config import ConfigError, load_config
 from .engine import Gauntlet
 from .report import run_check
 from .scaffold import init_project
@@ -51,7 +51,11 @@ def main(argv: list[str] | None = None) -> int:
         args = ap.parse_args(["check", *(argv or sys.argv[1:])])
 
     if args.cmd == "check":
-        cfg = load_config(args.root.resolve(), args.config)
+        try:
+            cfg = load_config(args.root.resolve(), args.config)
+        except ConfigError as exc:
+            print(f"docloom: config error — {exc}", file=sys.stderr)
+            return 2
         return run_check(
             Gauntlet(cfg),
             summary=args.summary,

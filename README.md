@@ -41,10 +41,14 @@ retrofit lands (the same ratchet pattern the original repo used).
   checker (paths, vocabulary, ratchets, sibling checkouts) lives in
   `docloom.toml` / `[tool.docloom]`. See `examples/crosssense.toml`, which
   reproduces the original repo's behavior exactly.
-- **Self-describing where it counts** — clause registers declare their own
-  `register:` spec block; the vocabulary can optionally live in the conventions
-  doc's frontmatter (`vocabulary.from-doc`), so the human spec IS the machine
-  spec.
+- **Self-describing by default** — clause registers declare their own
+  `register:` spec block, and the conventions doc's `vocabulary:` frontmatter
+  block is the authoritative enum source (`vocabulary.from-doc`, active from
+  `init`): the doc agents read IS the spec the checker enforces. Its prose
+  tables are agreement-checked against the block, and a missing/mangled block
+  is a hard error — never a silent fallback to defaults. Tool-version facts
+  (the sub-check list) are deliberately NOT restated per-repo: `docloom check`
+  output is their authoritative enumeration.
 - **Pluggable anchor resolvers** — `python` (stdlib-ast symbols/tests) and
   `litestar` (route composition) ship in v1; other languages/frameworks are
   registered stubs that fail loudly rather than silently passing.
@@ -58,5 +62,5 @@ config) from the crosssense repo root, in all three modes (strict, `--summary`,
 
 ## Status
 
-v0.1 — mock/parity stage. The crosssense repo still runs its own in-tree
+v0.2 — first usable release. The crosssense repo still runs its own in-tree
 checker; nothing there depends on this package yet.

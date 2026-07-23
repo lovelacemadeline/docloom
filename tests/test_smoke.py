@@ -120,3 +120,70 @@ def test_anchor_resolves_when_symbol_exists(project: Path, capsys) -> None:
     )
     _stage(project)
     assert main(["check", "--root", str(project)]) == 0
+
+
+def _conventions(project: Path) -> Path:
+    return project / "docs/doc-conventions.md"
+
+
+def test_init_is_self_describing(project: Path) -> None:
+    assert "from-doc" in (project / "docloom.toml").read_text()
+    assert "vocabulary:" in _conventions(project).read_text()
+
+
+def test_mangled_vocabulary_block_fails_loud(project: Path, capsys) -> None:
+    doc = _conventions(project)
+    doc.write_text(doc.read_text().replace("vocabulary:", "vocabuIary:"))
+    _stage(project)
+    assert main(["check", "--root", str(project)]) == 2
+    assert "config error" in capsys.readouterr().err
+
+
+def test_missing_conventions_doc_fails_loud(project: Path, capsys) -> None:
+    _conventions(project).unlink()
+    _stage(project)
+    assert main(["check", "--root", str(project)]) == 2
+    assert "file not found" in capsys.readouterr().err
+
+
+def test_table_drift_from_block_fails(project: Path, capsys) -> None:
+    doc = _conventions(project)
+    doc.write_text(
+        doc.read_text().replace(
+            "| `prd` | Product/feature requirements",
+            "| `braindump` | Freeform notes | anywhere | x |\n"
+            "| `prd` | Product/feature requirements",
+        )
+    )
+    _stage(project)
+    assert main(["check", "--root", str(project)]) == 1
+    out = capsys.readouterr().out
+    assert "types table lists 'braindump'" in out
+
+
+def test_block_drift_from_table_fails(project: Path, capsys) -> None:
+    doc = _conventions(project)
+    doc.write_text(doc.read_text().replace("    - runbook\n", "", 1))
+    _stage(project)
+    assert main(["check", "--root", str(project)]) == 1
+    out = capsys.readouterr().out
+    # runbook now valid per the table but absent from the enforced block:
+    assert "'runbook' — absent from the `vocabulary:` block" in out
+
+
+def test_block_governs_enforcement_not_defaults(project: Path, capsys) -> None:
+    """The doc's block, not docloom's built-ins, is what validates docs: a type
+    added to BOTH the block and the table becomes legal."""
+    doc = _conventions(project)
+    text = doc.read_text().replace(
+        "    - working-artifact\n", "    - working-artifact\n    - zine\n"
+    )
+    text = text.replace(
+        "| `prd` | Product/feature requirements",
+        "| `zine` | A fun little zine | anywhere | x |\n"
+        "| `prd` | Product/feature requirements",
+    )
+    doc.write_text(text)
+    (project / "docs/my.md").write_text("---\ntype: zine\nstatus: active\n---\n# z\n")
+    _stage(project)
+    assert main(["check", "--root", str(project)]) == 0

@@ -21,6 +21,11 @@ from pathlib import Path
 
 from .frontmatter import parse_frontmatter_full
 
+
+class ConfigError(Exception):
+    """A configuration problem that must stop the run loudly (never a silent
+    fallback to defaults — see `vocabulary.from-doc`)."""
+
 DEFAULT_TYPES = frozenset(
     {
         "prd",
@@ -101,6 +106,12 @@ class Config:
     # -- source_docs sibling schemes: scheme name -> path relative to root ------
     siblings: dict[str, str] = field(default_factory=dict)
 
+    # -- self-describing vocabulary: the conventions doc that owns the enums ----
+    # Set (via `vocabulary.from-doc`) when the doc's `vocabulary:` frontmatter
+    # block is the authoritative vocabulary source. Enables the doc-internal
+    # agreement check (prose tables must match the block).
+    vocab_from_doc: str | None = None
+
     @property
     def tracker_path(self) -> Path:
         return self.root / self.tracker
@@ -128,14 +139,35 @@ class Config:
 
 
 def _vocab_from_doc(root: Path, relpath: str) -> dict[str, object]:
-    """Read a `vocabulary:` frontmatter block from the conventions doc itself
-    (the self-describing option). Returns {} when absent."""
+    """Read the `vocabulary:` frontmatter block from the conventions doc itself
+    (the self-describing default). FAIL LOUD, never fall back: once a repo says
+    "the doc is the spec", a missing doc or a mangled block must stop the run —
+    a silent revert to built-in defaults would swap the repo's intended
+    vocabulary out from under it (previously-valid docs start failing, or
+    previously-invalid ones pass, with nothing screaming)."""
     doc = root / relpath
     if not doc.exists():
-        return {}
+        raise ConfigError(
+            f"vocabulary.from-doc points at {relpath} — file not found"
+        )
     fm = parse_frontmatter_full(doc.read_text(encoding="utf-8", errors="replace"))
-    block = (fm or {}).get("vocabulary")
-    return block if isinstance(block, dict) else {}
+    if fm is None:
+        raise ConfigError(
+            f"vocabulary.from-doc: {relpath} has no parseable frontmatter"
+        )
+    block = fm.get("vocabulary")
+    if not isinstance(block, dict):
+        raise ConfigError(
+            f"vocabulary.from-doc: {relpath} declares no `vocabulary:` "
+            "frontmatter block"
+        )
+    for required in ("types", "statuses"):
+        if not isinstance(block.get(required), list) or not block[required]:
+            raise ConfigError(
+                f"vocabulary.from-doc: {relpath} `vocabulary:` block is missing "
+                f"a non-empty `{required}:` list"
+            )
+    return block
 
 
 def _apply(cfg: Config, data: dict[str, object]) -> Config:
@@ -161,6 +193,7 @@ def _apply(cfg: Config, data: dict[str, object]) -> Config:
     vocab = data.get("vocabulary")
     if isinstance(vocab, dict):
         if "from-doc" in vocab:
+            updates["vocab_from_doc"] = str(vocab["from-doc"])
             vocab = {**_vocab_from_doc(cfg.root, str(vocab["from-doc"])), **vocab}
         if isinstance(vocab.get("types"), list):
             updates["types"] = frozenset(str(x) for x in vocab["types"])

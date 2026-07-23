@@ -51,6 +51,13 @@ def run_check(g: Gauntlet, *, summary: bool = False, valid_if_present: bool = Fa
         ("conventions-exempt declarations valid", g.conventions_exempt_issues()),
         ("relative links resolve", g.dangling_link_issues()),
     ]
+    # Only present when the repo is self-describing (vocabulary.from-doc) —
+    # keeps output byte-identical to the original checker for repos that aren't.
+    if cfg.vocab_from_doc is not None:
+        gate1.append(
+            ("conventions tables agree with vocabulary block",
+             g.conventions_doc_issues())
+        )
     gate2 = [
         ("epic-number identity + home", g.epic_number_issues(docs)),
         ("story-number identity", g.story_number_issues()),

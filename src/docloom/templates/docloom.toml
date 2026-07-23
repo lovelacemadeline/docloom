@@ -18,12 +18,13 @@ resolver = "python"       # symbol/test resolver (v1: python only)
 route-resolver = "litestar"
 route-globs = ["src/**/*.py"]
 
-# Vocabulary: defaults are the closed 12-type / 8-status / 8-execution-status
-# enums documented in docs/doc-conventions.md. Override here — or make the
-# conventions doc self-describing by declaring a `vocabulary:` block in its
-# frontmatter and pointing at it:
-# [docloom.vocabulary]
-# from-doc = "docs/doc-conventions.md"
+# Vocabulary: the conventions doc is SELF-DESCRIBING — its `vocabulary:`
+# frontmatter block is the authoritative enum source (the doc agents read IS
+# the spec the checker enforces; its prose tables are agreement-checked against
+# the block). Removing this line falls back to docloom's built-in defaults;
+# pointing at a doc without the block is a hard error, never a silent fallback.
+[docloom.vocabulary]
+from-doc = "docs/doc-conventions.md"
 
 # Sibling checkouts usable as `source_docs:` schemes on epic docs, e.g.:
 # [docloom.siblings]

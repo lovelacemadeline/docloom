@@ -3,6 +3,46 @@ type: guide
 status: active
 title: Documentation Conventions — the single source of truth for how we write docs
 owner: {{PROJECT}}
+ # The AUTHORITATIVE machine-read vocabulary (docloom.toml: vocabulary.from-doc
+ # points here). The prose tables below are agreement-checked against this
+ # block — edit both together or `docloom check` fails. (Comments indented one
+ # space: the frontmatter parser reads a line-leading `# ` as a Markdown
+ # heading, i.e. a broken frontmatter fence.)
+vocabulary:
+  types:
+    - prd
+    - epic
+    - story
+    - register
+    - decision
+    - reference
+    - guide
+    - runbook
+    - plan
+    - research
+    - snapshot
+    - working-artifact
+  statuses:
+    - draft
+    - active
+    - superseded
+    - parked
+    - archived
+    - snapshot
+    - stub
+    - temporary
+  execution-statuses:
+    - pending
+    - ready-for-dev
+    - in-progress
+    - blocked
+    - needs-refactoring
+    - superseded
+    - completed
+    - deferred
+  conditional:
+    superseded: superseded-by
+    stub: points-to
 ---
 
 # Documentation Conventions
@@ -60,8 +100,16 @@ directories are a *consequence* of type, so `docs/` never becomes a junk drawer.
 **`epic` / `story` use a second, closed status axis: execution state** —
 `status:` on those two types means *how far the work has got*:
 
-`pending` · `ready-for-dev` · `in-progress` · `blocked` · `needs-refactoring`
-· `superseded` · `completed` · `deferred`
+| execution `status:` | Meaning |
+|---|---|
+| `pending` | Outlined; detailed spec not yet written |
+| `ready-for-dev` | Spec complete, not started |
+| `in-progress` | Being implemented |
+| `blocked` | Cannot proceed (dependency/issue) |
+| `needs-refactoring` | Code exists but needs rework |
+| `superseded` | Replaced or absorbed elsewhere |
+| `completed` | Built and tested |
+| `deferred` | Intentionally postponed |
 
 ## 4. The frontmatter contract
 
@@ -124,17 +172,23 @@ in the same change (§7).
 
 ## 7. Enforcement — three gates (`docloom check`)
 
-**Gate 1 — Doc validity**: every doc's `type:`/`status:` present and
-enum-valid; frontmatter is real YAML; relative links resolve.
+Three gates, each aggregating sub-checks:
 
-**Gate 2 — Consistency & tracking**: epic/story numbers are collision-free and
-homed; every `docs/sprint-status.yaml` story row exists on disk with a matching
-status and title, and every story file has a tracker row (the bijection);
-registry citations (`ADR-NNNN`, clause ids) resolve; enactable clauses are
-cited by at least one doc (orphan check); completed epics account for every
-clause they own; epic doc status equals its tracker status.
+- **Gate 1 — Doc validity**: is each doc well-formed on its own? (typed,
+  statused, real YAML, resolving links — and this doc's own vocabulary tables
+  agreeing with its `vocabulary:` block.)
+- **Gate 2 — Consistency & tracking**: do the epic docs, story files, sprint
+  tracker, and registers agree with each other? (number identity, the
+  tracker↔file bijection, citation resolution, orphan + coverage checks.)
+- **Gate 3 — Spec-grounding anchors**: do stories name code that exists?
 
-**Gate 3 — Spec-grounding anchors**: every in-scope story carries an `anchor:`
+**The authoritative sub-check list is `docloom check`'s own output** — it
+enumerates every gate and sub-check for the installed docloom version on every
+run. This doc deliberately does not restate that list: it would go stale on
+every docloom upgrade, and drift-by-restatement is the disease this whole
+system exists to cure (§5.1 applies to us too).
+
+**Gate 3 in practice**: every in-scope story carries an `anchor:`
 list — concrete code artifacts whose existence is checked mechanically — or the
 explicit opt-out `anchor: none  # <reason>`:
 

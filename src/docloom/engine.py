@@ -206,6 +206,78 @@ class Gauntlet:
                     issues.append(f"{rel}: dangling link -> {m.group(1)}")
         return issues
 
+    def conventions_doc_issues(self) -> list[str]:
+        """Doc-internal agreement for the self-describing conventions doc: the
+        values enumerated in its prose vocabulary tables must equal its
+        authoritative `vocabulary:` frontmatter block — the same move as the
+        tracker<->file bijection, applied to the conventions doc itself. The
+        tables are what agents READ; the block is what the checker ENFORCES;
+        this gate is what keeps them the same artifact. Only runs when
+        `vocabulary.from-doc` is configured.
+
+        Tables are classified by their header row's first cell (contains
+        "execution" -> execution statuses; else "type" -> types; else "status"
+        -> statuses) and values are read from backticked first-column cells —
+        deliberately keyed on structure the shipped template controls, not a
+        general Markdown-table parser."""
+        rel = self.cfg.vocab_from_doc
+        if rel is None:
+            return []
+        doc = self.root / rel
+        if not doc.exists():  # config load already hard-fails; belt-and-braces
+            return [f"{rel}: vocabulary.from-doc target missing"]
+        text = strip_frontmatter(doc.read_text(encoding="utf-8", errors="replace"))
+        # Strip fenced code so example frontmatter blocks can't read as tables.
+        text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+
+        found: dict[str, set[str]] = {}
+        header: str | None = None
+        past_separator = False
+        for line in text.splitlines():
+            if not line.lstrip().startswith("|"):
+                header, past_separator = None, False
+                continue
+            first_cell = line.split("|")[1].strip() if "|" in line[1:] else ""
+            if header is None:
+                h = first_cell.lower()
+                if "execution" in h and "status" in h:
+                    header = "execution statuses"
+                elif "type" in h:
+                    header = "types"
+                elif "status" in h:
+                    header = "statuses"
+                else:
+                    header = "ignored"
+                continue
+            if not past_separator:
+                past_separator = True  # the |---|---| row
+                continue
+            if header != "ignored" and (m := re.match(r"^`([^`]+)`", first_cell)):
+                found.setdefault(header, set()).add(m.group(1))
+
+        expected = {
+            "types": set(self.cfg.types),
+            "statuses": set(self.cfg.statuses),
+            "execution statuses": set(self.cfg.execution_statuses),
+        }
+        issues: list[str] = []
+        for axis, want in expected.items():
+            got = found.get(axis)
+            if got is None:
+                issues.append(f"{rel}: no {axis} table found to agree with the block")
+                continue
+            for extra in sorted(got - want):
+                issues.append(
+                    f"{rel}: {axis} table lists {extra!r} — absent from the "
+                    "`vocabulary:` block"
+                )
+            for missing in sorted(want - got):
+                issues.append(
+                    f"{rel}: `vocabulary:` block declares {missing!r} — missing "
+                    f"from the {axis} table"
+                )
+        return issues
+
     # -- Gate 2: epic/story identity + tracker reconciliation --------------------
 
     def epic_number_issues(self, docs: list[Path]) -> list[str]:

@@ -1,6 +1,6 @@
 [project]
 name = "docloom"
-version = "0.1.0"
+version = "0.2.0"
 description = "Portable doc-conventions gauntlet: typed frontmatter, tracker bijection, citeable registers, spec-grounding anchors."
 readme = "README.md"
 requires-python = ">=3.11"
