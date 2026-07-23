@@ -6,4 +6,4 @@ generic clause-register engine and the advisory lints. Everything repo-specific
 lives in `docloom.toml`; the engine itself hardcodes nothing about any one repo.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"

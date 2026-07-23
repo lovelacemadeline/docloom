@@ -229,3 +229,26 @@ def test_context_manifest_tiers(project: Path, capsys) -> None:
     assert "docs/reference/core-register.md" in out and "C-CORE-1" in out
     assert "docs/adr/0001-example.md" in out
     assert "docs/product/prd-example.md" in out
+
+
+def test_unpadded_epic_filename_resolves(project: Path, capsys) -> None:
+    """Regression (kernel-project field report): `epic-4.md` (unpadded) must
+    resolve in the context manifest and the epic<->tracker status gate — not
+    read as a phantom `epic-04.md (MISSING)`."""
+    (project / "docs/epics/epic-4.md").write_text(
+        "---\ntype: epic\nstatus: in-progress\nepic: 4\ntitle: Kernels\n---\n# Epic 4\n"
+    )
+    (project / "docs/sprint-status.yaml").write_text(
+        "epics:\n  - epic: 4\n    title: Kernels\n    status: completed\n"
+        "    story_home: docs/stories/\n    stories: []\n"
+    )
+    _stage(project)
+    capsys.readouterr()
+    # status gate must SEE the unpadded doc: doc in-progress vs tracker completed
+    assert main(["check", "--root", str(project)]) == 1
+    assert "doc status 'in-progress' != tracker status 'completed'" in (
+        capsys.readouterr().out
+    )
+    assert main(["context", "--root", str(project), "4"]) == 0
+    out = capsys.readouterr().out
+    assert "docs/epics/epic-4.md" in out and "(MISSING)" not in out

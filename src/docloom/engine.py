@@ -346,8 +346,17 @@ class Gauntlet:
         return data.get("epics", []) or []
 
     def _epic_doc(self, epic_num: object) -> Path:
-        """Canonical epic-doc path for an epic number (`<epics-dir>/epic-NN.md`)."""
-        return self.cfg.epics_path / f"epic-{int(epic_num):02d}.md"
+        """Epic-doc path for an epic number. Zero-padded `epic-NN.md` is the
+        canonical name, but unpadded `epic-N.md` is equally valid (the filename
+        gate compares numbers with padding stripped) — so whichever exists wins,
+        else canonical. Without this, an unpadded repo reads as MISSING in the
+        context manifest and silently skips the epic<->tracker status check."""
+        n = int(epic_num)
+        padded = self.cfg.epics_path / f"epic-{n:02d}.md"
+        unpadded = self.cfg.epics_path / f"epic-{n}.md"
+        if not padded.exists() and unpadded.exists():
+            return unpadded
+        return padded
 
     def _inline_story_ids(self, doc: Path) -> list[str]:
         """Story ids from `## Story N.M[x]` headings in an inline epic doc."""
